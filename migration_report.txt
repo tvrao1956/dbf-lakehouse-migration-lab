@@ -1,0 +1,41 @@
+===================================================================
+ LIVE MIGRATION RUN \u2014 .DBF legacy system \u2192 lakehouse (Delta format)
+ Executed: 2026-07-24 11:30 UTC
+===================================================================
+
+>>> STEP 0: create the legacy system
+PRODMAST.DBF written: 12 products
+STORES_ISSUES.DBF written: 408 records (384 clean + 24 dirty)
+
+>>> STEP 1: extract to BRONZE (raw, untouched)
+BRONZE  prodmast           12 records  (raw, untouched)
+BRONZE  stores_issues     408 records  (raw, untouched)
+
+>>> STEP 2: BRONZE -> SILVER (validate + quarantine)
+SILVER  accepted          383 records (validated + enriched)
+SILVER  quarantined        25 records with reasons:
+            9 x DUPLICATE_RECORD: voucher already loaded
+            6 x MISSING_PRODCODE: blank product code
+            4 x INVALID_QTY: zero or negative
+            4 x UNKNOWN_PRODCODE: not in product master (typo?)
+            1 x INVALID_DATE: outside FY 2024-25 (sentinel 1900-01-01?)
+            1 x SUSPECT_QTY: exceeds plausibility limit 10,000
+
+>>> STEP 3: SILVER -> GOLD (business tables)
+GOLD    monthly_consumption_by_product   133 rows
+GOLD    costcentre_spend                   6 rows
+
+--- What the dashboard would show (annual top-5 by value) ---
+  PKG-CRT1  WOODEN CRATE TYPE-1          Rs   2,002,540.80
+  RUB-NBR5  NBR RUBBER SHEET 5MM         Rs   1,891,827.20
+  CHM-TCE1  TRICHLOROETHYLENE            Rs   1,297,689.60
+  PNT-OG55  OLIVE GREEN PAINT IS-220     Rs   1,282,070.10
+  ABR-G80   GRINDING WHEEL G-80          Rs   1,170,051.60
+
+--- Cost-centre spend (full year) ---
+  PAINT1  Rs   2,024,745.93  (74 issues)
+  MC-01   Rs   1,971,290.70  (61 issues)
+  HT-01   Rs   1,810,660.09  (67 issues)
+  MAINT1  Rs   1,736,182.42  (58 issues)
+  ASSY-1  Rs   1,508,987.66  (71 issues)
+  MC-02   Rs   1,495,410.66  (52 issues)
